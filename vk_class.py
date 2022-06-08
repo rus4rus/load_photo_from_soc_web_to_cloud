@@ -1,8 +1,4 @@
-import sys
-
-from tokens import vk_token, token_yandex
 import requests
-from pprint import pprint
 from datetime import datetime
 from yandex_disc import YaUploader
 
@@ -31,53 +27,65 @@ class VkApi:
             r = requests.get(url, params=params)
         except requests.ConnectionError:
             print(f'Нет соединения с сервером. Возможно, отсутствует подключение к интернету')
-            with open("log.txt", "a") as f:
+            with open("logs.txt", "a") as f:
                 f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Нет соединения с сервером. Возможно, отсутствует подключение к интернету\n')
-            sys.exit()
+            return False
+
 
         if r.json().get("error"): # Проверка на ошибки
-            print(f"Ошибка! {r.json()['error']['error_msg']}")
-            with open("log.txt", "a") as f:
-                f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Ошибка! {r.json()["error"]["error_msg"]}\n')
-            sys.exit()
+            print(f"Ошибка при подключении в ВК! {r.json()['error']['error_msg']}")
+            with open("logs.txt", "a") as f:
+                f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Ошибка при подключении к ВК! {r.json()["error"]["error_msg"]}\n')
+            return False
 
         if not r.json()["response"]: # Проверка на существование пользователя
             s_names = str([*user_id]).rstrip("]").lstrip("[").replace("'","") #из списка имена пользователей в строку
             print(f"Пользователей с именем(-ами) {s_names} не существует")
-            with open("log.txt", "a") as f:
+            with open("logs.txt", "a") as f:
                 f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Пользователей с именем(-ами) {s_names} не существует\n')
-            sys.exit()
+            return False
         return r.json()
 
     def _get_user_id(self, user):
-        ''''Получение id из уникального имени'''
-        return self.get_user_info(user)["response"][0]["id"]
+        '''Получение id из уникального имени'''
+        r = self.get_user_info(user)
+        if not r:
+            return False
+        user_id = r["response"][0]["id"]
+        return user_id
 
     def get_photos_list(self, user_id):
+        if not user_id:
+            return False
+        owner_id = self._get_user_id(user_id)
+        if not owner_id:
+            return False
         '''Получение список фото'''
         url = self.URL + 'photos.get'
-        params = {**self.get_params(), **{"owner_id": self._get_user_id(user_id),
+        params = {**self.get_params(), **{"owner_id": owner_id,
                                           "album_id": "profile",
                                           "extended": 1}}
         r = requests.get(url, params=params)
         if r.json().get("error"): # Проверка на ошибки
-            print(f"Ошибка! {r.json()['error']['error_msg']}")
-            with open("log.txt", "a") as f:
-                f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Ошибка! {r.json()["error"]["error_msg"]}\n')
-            sys.exit()
+            print(f"Ошибка ВК! {r.json()['error']['error_msg']}")
+            with open("logs.txt", "a") as f:
+                f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Ошибка ВК! {r.json()["error"]["error_msg"]}\n')
+            return False
         elif not r.json()["response"]["count"]:
             print(f"У пользователя {user_id}  нет фотографий")
-            with open("log.txt", "a") as f:
+            with open("logs.txt", "a") as f:
                 f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | У пользователя {user_id}  нет фотографий\n')
-            sys.exit()
+            return False
         print('Фотографии подготовлены для загрузки')
-        with open("log.txt", "a") as f:
+        with open("logs.txt", "a") as f:
             f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f%d/%m/%Y")} | Фотографии подготовлены для загрузки\n')
         return r.json()
 
     def get_max_size_photos(self, user_id, count):
         ''''Получаем список максимальных по размеру фото, число фото count по умолчанию - 5'''
         r = self.get_photos_list(user_id)
+        if not r:
+            return False
         list_of_all_photos = r["response"]["items"]
         list_of_max_photos = [] #список с фотографиями в максимальном разрешении
         # Получаем список фото в максимальноми размере
@@ -93,6 +101,8 @@ class VkApi:
 
     def make_photo_names(self, list_of_photos: list):
         '''создаем имена файлов по условию: имя - количество лайков, если их число совпадает - то лайк + дата создания'''
+        if not list_of_photos:
+            return False
         set_of_names = set() #массив всех имен
         set_of_repeated_names = set() #массив повторных имен
         for photo in list_of_photos:
@@ -103,6 +113,6 @@ class VkApi:
             set_of_names.add(name)
         for photo in list_of_photos:
             if photo["name"] in set_of_repeated_names: #если имя совпадает с именем в массиве с повторами,
-                                                       # то всем фото с таким именем меняем его
+                                                       # то меняем все одинаковые имена
                 photo["name"] = f'{photo["name"]}_{datetime.fromtimestamp(photo["date"]).strftime("%d-%m-%Y_%H-%M-%S")}'
-        return(list_of_photos)
+        return list_of_photos
