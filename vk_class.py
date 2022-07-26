@@ -99,22 +99,4 @@ class VkApi:
         sorted_list = sorted(list_of_max_photos, key=lambda x: x["sizes"]["height"] * x["sizes"]["width"], reverse=True)
         return sorted_list[:count] #возвращаем первые count фото с максимальным разрешением
 
-    def make_photo_names(self, list_of_photos: list):
-        '''создаем имена файлов по условию: имя - количество лайков, если их число совпадает - то лайк + дата создания'''
-        if not list_of_photos:
-            return False
-        set_of_names = set() #массив всех имен
-        set_of_repeated_names = set() #массив повторных имен
-        for photo in list_of_photos:
-            name = str(photo["likes"]["count"])
-            if name in set_of_names:
-                set_of_repeated_names.add(name)
-            photo["name"] = name
-            set_of_names.add(name)
-            photo['url'] = photo['sizes']['url']  # выводим url на 1 уровень
-        for photo in list_of_photos:
-            if photo["name"] in set_of_repeated_names: #если имя совпадает с именем в массиве с повторами,
-                                                       # то меняем все одинаковые имена
-                photo["name"] = f'{photo["name"]}_{datetime.fromtimestamp(photo["date"]).strftime("%d-%m-%Y_%H-%M-%S")}'
 
-        return list_of_photos

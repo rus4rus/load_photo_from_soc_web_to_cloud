@@ -9,16 +9,19 @@ class InstApi:
     def __init__(self, token):
         self.token = token
 
-
     def get_user_info(self, user_id):
-        '''makes dict {"account_type": type, "id":id, "media":[{"id": id},...], "media_count": count, "username":username}'''
-
-        url = self.URL + user_id
-        params = {
-            "access_token": self.token,
-            "fields": "account_type,id,media_count,username, media"
-        }
-        r = requests.get(url=url, params=params)
+        '''makes dict {"account_type": type, "id":id, "media":[{"id": id},...], "media_count": count,
+        "username":username} '''
+        try:
+            url = self.URL + user_id
+            params = {
+                "access_token": self.token,
+                "fields": "account_type,id,media_count,username, media"
+            }
+            r = requests.get(url=url, params=params)
+        except KeyError:
+            print('r.json()["error"]["message"]')
+            return
         return r.json()
 
     def get_photo_info_from_photo_id(self, media_id):
@@ -31,23 +34,23 @@ class InstApi:
         r = requests.get(url, params=params)
         return r.json()
 
-
     def get_list_of_photos(self, dict_of_photos, count=50):
         '''makes list of photos ids, limit - 100'''
         if not dict_of_photos.get('media'):
-            print(dict_of_photos['error']['error_user_title'])
+            print(dict_of_photos['error']['message'])
             return
         new_list = []
         dict_of_photos = dict_of_photos['media']
         while True:
             if not dict_of_photos.get('data'):
-                print(dict_of_photos['error']['error_user_title'])
+                print(dict_of_photos['error']['message'])
                 return
             for data in dict_of_photos['data']:
                 new_list.append(data['id'])
             if dict_of_photos['paging'].get('next'):
                 dict_of_photos = requests.get(dict_of_photos['paging']['next']).json()
-            else: break
+            else:
+                break
         return new_list[:count]
 
     def make_dict_of_photos(self, list_of_photos):
@@ -58,9 +61,9 @@ class InstApi:
             return
         for photo in list_of_photos:
             photo_info = self.get_photo_info_from_photo_id(photo)
-            list_of_photo_info.append({'name': photo_info['timestamp'][:-5].replace(":","_"), 'url': photo_info['media_url']})
+            list_of_photo_info.append(
+                {'name': photo_info['timestamp'][:-5].replace(":", "_"), 'url': photo_info['media_url']})
         return list_of_photo_info
-
 
 
 if __name__ == "__main__":
@@ -70,7 +73,3 @@ if __name__ == "__main__":
     dict1 = insta_api.get_user_info('17841400296670589')
     new_list = insta_api.get_list_of_photos(dict1, 5)
     new_list_of_dicts = insta_api.make_dict_of_photos(new_list)
-    print(new_list_of_dicts)
-
-
-
