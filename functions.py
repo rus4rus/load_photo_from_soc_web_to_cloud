@@ -2,9 +2,11 @@ from yandex_disc import YaUploader
 from vk_class import VkApi
 from insta_class import InstApi
 from tqdm import tqdm
-from datetime import datetime
 from time import sleep
 import json
+from datetime import datetime
+from log_record import logs
+import requests
 
 
 def upload_photo_to_ya_disc(ya_token, list_of_photos, name_of_dir="files_for_netology"):
@@ -21,15 +23,12 @@ def upload_photo_to_ya_disc(ya_token, list_of_photos, name_of_dir="files_for_net
         sleep(0.1)
         t.update()
     t.close()
-    print(f'\nВсе файлы загружены (в количестве {len(list_of_photos)} при запросе {count} фотографий)')
-    with open('logs.txt', 'a') as f:
-        f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | '
-                f'Все файлы загружены (в количестве {len(list_of_photos)} при запросе {count} фотографий)\n')
+    logs(f'Все файлы загружены (в количестве {len(list_of_photos)} при запросе {count} фотографий)')
 
 
 def make_json_from_vk(list_of_photos):
     if not list_of_photos:
-        print('Файл JSON не создан, так как некорректные данные!')
+        logs('Файл JSON не создан, так как введены некорректные данные!')
         return
     json_list = []
     for photo in list_of_photos:
@@ -72,6 +71,11 @@ def make_photo_names(list_of_photos: list):
 
 def download_photo(ya_token, vk_token='', insta_token=''):
     '''Function of inputting of dir name and count of photo'''
+    try:
+        requests.get("https://google.com")
+    except requests.ConnectionError as e:
+        logs(f'{e}. Нет соединения с сервером. Возможно, отсутствует подключение к интернету')
+        return
     while True:
         dir_name = input('Введите название папки на Я.диске для загрузки фото: ')
         if not dir_name:
@@ -90,11 +94,15 @@ def download_photo(ya_token, vk_token='', insta_token=''):
         if number == "1":
             vk = VkApi(vk_token)
             user_id = input('Введите ник пользователя или его id: ')
+            logs(f"Выбрана соцсеть {['Вконтакте', 'Инстаграмм'][int(number) - 1]}, имя пользователя: {user_id},"
+                 f" количество загружаемых фото: {count}, папка для загрузки: {dir_name}")
             photo_list = make_photo_names(vk.get_max_size_photos(user_id, count))
             make_json_from_vk(photo_list)
         if number == "2":
             insta_api = InstApi(insta_token)
             user_id = input('Введите id пользователя (ник не подходит): ')
+            logs(f"Выбрана соцсеть {['Вконтакте', 'Инстаграмм'][int(number) - 1]}, имя пользователя: {user_id},"
+                 f" количество загружаемых фото: {count}, папка для загрузки: {dir_name}")
             dict1 = insta_api.get_user_info(user_id)
             new_list = insta_api.get_list_of_photos(dict1, count)
             photo_list = insta_api.make_dict_of_photos(new_list)

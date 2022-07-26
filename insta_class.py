@@ -1,6 +1,6 @@
-from pprint import pprint
 import requests
 import configparser
+from log_record import logs
 
 
 class InstApi:
@@ -19,10 +19,13 @@ class InstApi:
                 "fields": "account_type,id,media_count,username, media"
             }
             r = requests.get(url=url, params=params)
-        except KeyError:
-            print('r.json()["error"]["message"]')
+            return r.json()
+        except KeyError as e:
+            logs(f'{e}.')
             return
-        return r.json()
+        except requests.exceptions.ConnectionError as e:
+            logs(f'{e}.')
+
 
     def get_photo_info_from_photo_id(self, media_id):
 
@@ -36,14 +39,16 @@ class InstApi:
 
     def get_list_of_photos(self, dict_of_photos, count=50):
         '''makes list of photos ids, limit - 100'''
+        if not dict_of_photos:
+            return
         if not dict_of_photos.get('media'):
-            print(dict_of_photos['error']['message'])
+            logs(f"{dict_of_photos['error']['message']}")
             return
         new_list = []
         dict_of_photos = dict_of_photos['media']
         while True:
             if not dict_of_photos.get('data'):
-                print(dict_of_photos['error']['message'])
+                logs(f"{dict_of_photos['error']['message']}")
                 return
             for data in dict_of_photos['data']:
                 new_list.append(data['id'])
