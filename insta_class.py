@@ -1,4 +1,25 @@
-*
+from pprint import pprint
+import requests
+from tokens import insta_token
+
+
+class InstApi:
+    URL = "https://graph.instagram.com/v9.0/"
+
+    def __init__(self, token):
+        self.token = token
+
+    def get_user_id(self, username): #не работает
+        url = f"https://www.instagram.com/web/search/topsearch/?context=user&count=0&query=bassjester"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.89 Safari/537.36"}
+        r = requests.get(url)*
+        print(r)
+        return r.json()
+
+
+    def get_user_info(self, user_id):
+        url = self.URL + user_id
+        params = {
             "access_token": self.token,
             "fields": "account_type,id,media_count,username"
         }
