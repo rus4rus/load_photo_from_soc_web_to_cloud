@@ -4,6 +4,7 @@ from yandex_disc import YaUploader
 
 class VkApi:
     URL = "https://api.vk.com/method/"
+
     def __init__(self, token):
         self.token = token
 
@@ -14,7 +15,7 @@ class VkApi:
         }
 
     def get_user_info(self, *user_id):
-        '''Получение информации о человеке/людях по его id/нику'''
+        '''get info by username/id'''
         url = self.URL +'users.get'
         users = ",".join(user_id)
         params = {
@@ -22,7 +23,7 @@ class VkApi:
             **{"user_ids": users},
             "fields": "about",
         }
-        #Проверка соединения интернета
+        #check Internet connection
         try:
             r = requests.get(url, params=params)
         except requests.ConnectionError:
@@ -30,15 +31,13 @@ class VkApi:
             with open("logs.txt", "a") as f:
                 f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Нет соединения с сервером. Возможно, отсутствует подключение к интернету\n')
             return False
-
-
-        if r.json().get("error"): # Проверка на ошибки
+        if r.json().get("error"):
             print(f"Ошибка при подключении в ВК! {r.json()['error']['error_msg']}")
             with open("logs.txt", "a") as f:
                 f.write(f'{datetime.now().strftime(f"%H:%M:%S:%f %d/%m/%Y")} | Ошибка при подключении к ВК! {r.json()["error"]["error_msg"]}\n')
             return False
-
-        if not r.json()["response"]: # Проверка на существование пользователя
+        # check users exsistence
+        if not r.json()["response"]:
             s_names = str([*user_id]).rstrip("]").lstrip("[").replace("'","") #из списка имена пользователей в строку
             print(f"Пользователей с именем(-ами) {s_names} не существует")
             with open("logs.txt", "a") as f:
@@ -47,7 +46,7 @@ class VkApi:
         return r.json()
 
     def _get_user_id(self, user):
-        '''Получение id из уникального имени'''
+        '''get unique id'''
         r = self.get_user_info(user)
         if not r:
             return False
@@ -55,12 +54,12 @@ class VkApi:
         return user_id
 
     def get_photos_list(self, user_id):
+        '''get list of all photos'''
         if not user_id:
             return False
         owner_id = self._get_user_id(user_id)
         if not owner_id:
             return False
-        '''Получение список фото'''
         url = self.URL + 'photos.get'
         params = {**self.get_params(), **{"owner_id": owner_id,
                                           "album_id": "profile",
@@ -82,21 +81,24 @@ class VkApi:
         return r.json()
 
     def get_max_size_photos(self, user_id, count):
-        ''''Получаем список максимальных по размеру фото, число фото count по умолчанию - 5'''
+        ''''get list of max size photos from list of all photos'''
         r = self.get_photos_list(user_id)
         if not r:
             return False
         list_of_all_photos = r["response"]["items"]
-        list_of_max_photos = [] #список с фотографиями в максимальном разрешении
-        # Получаем список фото в максимальноми размере
+        list_of_max_photos = []
+        # get list of photos in the highest resolution
         for photo in list_of_all_photos:
             list_of_max_photos.append(
                                        {"likes":photo["likes"],
                                        "date": photo["date"],
                                        "sizes":photo["sizes"][-1]
                                        }
-                                      ) #API выводит фото в максимальном разрешении последним среди однотипных
+                                      )
+        # all photos are sorted by their quality in API
         sorted_list = sorted(list_of_max_photos, key=lambda x: x["sizes"]["height"] * x["sizes"]["width"], reverse=True)
-        return sorted_list[:count] #возвращаем первые count фото с максимальным разрешением
+        #get first {count} photos (the best quality)
+        return sorted_list[:count]
+
 
 

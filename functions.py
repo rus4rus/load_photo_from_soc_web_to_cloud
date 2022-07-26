@@ -1,19 +1,19 @@
-from yandex_disc import YaUploader
-from vk_class import VkApi
-from insta_class import InstApi
-from tqdm import tqdm
-from time import sleep
-import json
 from datetime import datetime
-from log_record import logs
+import json
+from time import sleep
 import requests
+from tqdm import tqdm
+from insta_class import InstApi
+from log_record import logs
+from vk_class import VkApi
+from yandex_disc import YaUploader
 
 
 def upload_photo_to_ya_disc(ya_token, list_of_photos, name_of_dir="files_for_netology"):
+    '''upload photos from list to named dir'''
     ya = YaUploader(ya_token)
-    if not ya.check_disk():  # проверка на доступность диска
+    if not ya.check_disk():
         return
-    # создаем имена по сценарию из файла с данными о фото:
     if not list_of_photos:
         return
     count = len(list_of_photos)
@@ -27,6 +27,7 @@ def upload_photo_to_ya_disc(ya_token, list_of_photos, name_of_dir="files_for_net
 
 
 def make_json_from_vk(list_of_photos):
+    '''json {file_name: str, type_of_size: str}'''
     if not list_of_photos:
         logs('Файл JSON не создан, так как введены некорректные данные!')
         return
@@ -49,23 +50,25 @@ def input_social_network_and_username():
 
 
 def make_photo_names(list_of_photos: list):
-    '''создаем имена файлов по условию: имя - количество лайков, если их число совпадает - то лайк + дата создания'''
+    '''make photo names by their number of likes, if likes equal - ther date of creation'''
     if not list_of_photos:
         return False
-    set_of_names = set()  # массив всех имен
-    set_of_repeated_names = set()  # массив повторных имен
+    # all names
+    set_of_names = set()
+    # repeated names
+    set_of_repeated_names = set()
     for photo in list_of_photos:
         name = str(photo["likes"]["count"])
         if name in set_of_names:
             set_of_repeated_names.add(name)
         photo["name"] = name
         set_of_names.add(name)
-        photo['url'] = photo['sizes']['url']  # выводим url на верхний уровень
+        # copy url to the highest level(for standard)
+        photo['url'] = photo['sizes']['url']
     for photo in list_of_photos:
-        if photo["name"] in set_of_repeated_names:  # если имя совпадает с именем в массиве с повторами,
-            # то меняем все одинаковые имена
+        if photo["name"] in set_of_repeated_names:
+        # change repeated names
             photo["name"] = f'{photo["name"]}_{datetime.fromtimestamp(photo["date"]).strftime("%d-%m-%Y_%H-%M-%S")}'
-
     return list_of_photos
 
 

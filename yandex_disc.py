@@ -14,16 +14,15 @@ class YaUploader:
         }
 
     def get_link_to_upload(self, path: str):
+        '''get temporary link to upload on YndexDisc'''
         link = f'https://cloud-api.yandex.net/v1/disk/resources/upload/'
         headers = self.get_headers()
         params = {'path': path, 'overwrite': 'true'}
-
         try:
             r = requests.get(link, headers=headers, params=params, timeout=5)
         except requests.ConnectionError as e:
             logs(f'{e}. Нет соединения с сервером. Возможно, отсутствует подключение к интернету')
             return False
-
         if r.status_code == 200:
             logs('Связь с сервером установлена\n')
         else:
@@ -31,9 +30,8 @@ class YaUploader:
             return False
         return r.json()['href']
 
-    def _get_file_name_from_path(self, path: str) -> str:  # возвращает имя файла из пути (для Windows \ для linux /! )
-        """Из полного пути файла возвращает его имя"""
-        return path[path.rfind('\\') + 1:]  # сделать автоматически!!!
+    def _get_file_name_from_path(self, path: str) -> str:
+        return path[path.rfind('\\') + 1:]  # to do automatically for both Win and Linux
 
     def upload(self, upload_file: str):
         file_name = f"/files_for_netology/" + self._get_file_name_from_path(upload_file)
@@ -49,7 +47,8 @@ class YaUploader:
         link = f'https://cloud-api.yandex.net/v1/disk/resources/upload/'
         headers = self.get_headers()
         params = {"path": f"/{name_of_dir}/" + name_file + ".jpg", "url": url}
-        if requests.get("https://cloud-api.yandex.net/v1/disk/resources/",  # проверка на существование папки
+        # check dir existence
+        if requests.get("https://cloud-api.yandex.net/v1/disk/resources/",
                         headers=headers,
                         params={"path": name_of_dir}) != 404:
             if not self.add_directory(name_of_dir):
@@ -83,7 +82,6 @@ class YaUploader:
         return True
 
     def check_disk(self):
-        """Проверка на доступность диска"""
         link = f'https://cloud-api.yandex.net/v1/disk/'
         headers = self.get_headers()
         try:

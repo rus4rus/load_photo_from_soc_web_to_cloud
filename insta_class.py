@@ -26,9 +26,7 @@ class InstApi:
         except requests.exceptions.ConnectionError as e:
             logs(f'{e}.')
 
-
     def get_photo_info_from_photo_id(self, media_id):
-
         url = f"{self.URL}/{media_id}"
         params = {
             "access_token": self.token,
@@ -59,8 +57,7 @@ class InstApi:
         return new_list[:count]
 
     def make_dict_of_photos(self, list_of_photos):
-        '''makes list of dicts of photos with name and url. Name is date of creature in Instagram'''
-
+        '''makes list of dicts of photos with name and url. Name is date of creation in Instagram'''
         list_of_photo_info = []
         if not list_of_photos:
             return
