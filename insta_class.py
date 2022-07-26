@@ -1,6 +1,6 @@
 from pprint import pprint
 import requests
-from tokens import insta_token
+import configparser
 
 
 class InstApi:
@@ -9,42 +9,68 @@ class InstApi:
     def __init__(self, token):
         self.token = token
 
-    def get_user_id(self, username): #не работает
-        url = f"https://www.instagram.com/web/search/topsearch/?context=user&count=0&query=bassjester"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.89 Safari/537.36"}
-        r = requests.get(url)*
-        print(r)
-        return r.json()
-
 
     def get_user_info(self, user_id):
+        '''makes dict {"account_type": type, "id":id, "media":[{"id": id},...], "media_count": count, "username":username}'''
+
         url = self.URL + user_id
         params = {
             "access_token": self.token,
-            "fields": "account_type,id,media_count,username"
+            "fields": "account_type,id,media_count,username, media"
         }
         r = requests.get(url=url, params=params)
         return r.json()
 
-    def get_photo_url_from_photo_id(self, user_id): #тоже не робит
-        url = f"{self.URL}/{user_id}/media"
+    def get_photo_info_from_photo_id(self, media_id):
+
+        url = f"{self.URL}/{media_id}"
         params = {
             "access_token": self.token,
-            "fields": "media_url, caption"
+            "fields": "id, caption, media_url, timestamp, username"
         }
         r = requests.get(url, params=params)
         return r.json()
 
-    def get_likes_from_media(self, media_id):
-        url = f"https://api.instagram.com/v1/media/{media_id}/likes?access_token={self.token}"
-        r = requests.get(url)
-        return r.json()
+
+    def get_list_of_photos(self, dict_of_photos, count=50):
+        '''makes list of photos ids, limit - 100'''
+        if not dict_of_photos.get('media'):
+            print(dict_of_photos['error']['error_user_title'])
+            return
+        new_list = []
+        dict_of_photos = dict_of_photos['media']
+        while True:
+            if not dict_of_photos.get('data'):
+                print(dict_of_photos['error']['error_user_title'])
+                return
+            for data in dict_of_photos['data']:
+                new_list.append(data['id'])
+            if dict_of_photos['paging'].get('next'):
+                dict_of_photos = requests.get(dict_of_photos['paging']['next']).json()
+            else: break
+        return new_list[:count]
+
+    def make_dict_of_photos(self, list_of_photos):
+        '''makes list of dicts of photos with name and url. Name is date of creature in Instagram'''
+
+        list_of_photo_info = []
+        if not list_of_photos:
+            return
+        for photo in list_of_photos:
+            photo_info = self.get_photo_info_from_photo_id(photo)
+            list_of_photo_info.append({'name': photo_info['timestamp'][:-5].replace(":","_"), 'url': photo_info['media_url']})
+        return list_of_photo_info
 
 
 
 if __name__ == "__main__":
-    insta_api = InstApi(insta_token)
-    # pprint(insta_api.get_user_info('17841400296670589'))
-    pprint(insta_api.get_photo_url_from_photo_id('17841400296670589'))
-    # print(insta_api.get_user_id('bassjester'))
-    pprint(insta_api.get_likes_from_media('17906642740197100'))
+    config = configparser.ConfigParser()
+    config.read('settings.ini')
+    insta_api = InstApi(config['Instagram']['token'])
+    dict1 = insta_api.get_user_info('17841400296670589')
+    new_list = insta_api.get_list_of_photos(dict1, 5)
+    new_list_of_dicts = insta_api.make_dict_of_photos(new_list)
+    print(new_list_of_dicts)
+
+
+

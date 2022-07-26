@@ -111,8 +111,10 @@ class VkApi:
                 set_of_repeated_names.add(name)
             photo["name"] = name
             set_of_names.add(name)
+            photo['url'] = photo['sizes']['url']  # выводим url на 1 уровень
         for photo in list_of_photos:
             if photo["name"] in set_of_repeated_names: #если имя совпадает с именем в массиве с повторами,
                                                        # то меняем все одинаковые имена
                 photo["name"] = f'{photo["name"]}_{datetime.fromtimestamp(photo["date"]).strftime("%d-%m-%Y_%H-%M-%S")}'
+
         return list_of_photos

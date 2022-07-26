@@ -1,41 +1,9 @@
-from downloader import Download
-
-  # Пока первая черновая часть. Планирую добавить другие сервисы. Классы универсальные, поэтому есть лишние методы, которые
-  # Реализован простой лог-файл и прогресс-бар.
-  #
-  # Есть ряд вопросов к проверяющему:
-  #
-  # Как организовать проверку на ошибки, учитывая, что методы классов будут применяться в дальнейшем (т.е. все проверки
-  # внутри методов. Или как-то можно объединить одной функцией все или через try-except? У меня в итоге получилась
-  # серия return со значением False с обработкой в каждой последующей функции этого значения. Возможно, есть вариант оборвать
-  # цепочки функций без прерывания программы?
-  #
-  # Стоит ли выводить функции def make_photo_names (vk_class), def logs(vk_class) из класса, так как они не зависимы или
-  # оставить как есть?
-  #
-  # Стоит ли класс Download (downloader.py) сделать наследуемым от 2х классов - ЯД и ВК? или лучше пользоваться их методами
-  # отдельно без наследования!
-#
-
-
-
+import configparser
+from downloader import input_dir_name_and_count, input_social_network_and_username
 
 if __name__ == '__main__':
-    while True:
-        token_vk = input('Введите токен ВК: ')
-        token_ya = input('Введите токен Я.диска: ')
-        id_vk = input('Введите id Вконтакте: ')
-        dir_name = input('Введите название папки на Я.диске для загрузки фото: ')
-        while True:
-            try:
-                count = int(input('Введите количество загружаемых фотографий целым числом больше 0: '))
-            except ValueError:
-                continue
-            if count <= 0:
-                continue
-            break
-        dl = Download(ya_token=token_ya, vk_token=token_vk)
-        dl.upload_photo_from_vk_to_ya_disc(user_id=id_vk, count=count, name_of_dir=dir_name)
-        question = input("Если готовы продолжать запросы - введите 'да', если хотите выйти - любую другую фразу: ")
-        if question != "да":
-            break
+    config = configparser.ConfigParser()
+    config.read('settings.ini')
+    insta_token, vk_token, ya_token = config['Instagram']['token'], config['VK']['token'], config['Yandex']['token']
+
+    input_dir_name_and_count(ya_token, vk_token, insta_token)
